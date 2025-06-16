@@ -1,0 +1,10 @@
+streamlit
+PyMuPDF
+python-dotenv
+plotly
+langchain-google-genai>=1.0.0
+google-generativeai>=0.8.5
+langchain
+langchain_community
+PyPDF2
+python-multipart
