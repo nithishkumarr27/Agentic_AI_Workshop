@@ -1,0 +1,9 @@
+streamlit
+langchain
+langchain-google-genai
+faiss-cpu
+PyPDF2
+python-dotenv
+unstructured
+plotly
+langchain_community
