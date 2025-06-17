@@ -1,328 +1,12 @@
-# import streamlit as st
-# import os
-# from pathlib import Path
-# import json
-# from typing import Dict, List, Optional
-# from dotenv import load_dotenv
-# load_dotenv()
-# from agents import (
-#     ProfileAnalyzerAgent,
-#     RoleRequirementRetrieverAgent, 
-#     GapAnalysisAgent,
-#     RoadmapBuilderAgent
-# )
-# from rag_pipeline import RAGPipeline
-# from utils import parse_resume_pdf, validate_gemini_key
-# default_gemini_key = os.getenv("GOOGLE_AI_API_KEY", "")
-# print(f"Default Gemini API Key: {default_gemini_key}")  
-# # Page config
-# st.set_page_config(
-#     page_title="Career Accelerator AI",
-#     page_icon="🚀",
-#     layout="wide"
-# )
 
-# def initialize_session_state():
-#     """Initialize all session state variables"""
-#     if 'user_profile' not in st.session_state:
-#         st.session_state.user_profile = None
-#     if 'rag_pipeline' not in st.session_state:
-#         st.session_state.rag_pipeline = None
-#     if 'selected_role' not in st.session_state:
-#         st.session_state.selected_role = None
-#     if 'gap_analysis' not in st.session_state:
-#         st.session_state.gap_analysis = None
-#     if 'roadmap' not in st.session_state:
-#         st.session_state.roadmap = None
-#     if 'gemini_key_valid' not in st.session_state:
-#         st.session_state.gemini_key_valid = False
-
-# def setup_sidebar():
-#     """Setup sidebar with API key and configuration"""
-#     with st.sidebar:
-#         st.header("🔧 Configuration")
-        
-#         # API Key input
-#         gemini_key = st.text_input(
-#             "Gemini API Key",
-#             type="password",
-#               value=default_gemini_key, 
-#             help="Enter your Google Gemini API key"
-#         )
-        
-#         if gemini_key:
-#             if validate_gemini_key(gemini_key):
-#                 st.session_state.gemini_key_valid = True
-#                 os.environ["GOOGLE_API_KEY"] = gemini_key
-#                 st.success("✅ API Key validated")
-#             else:
-#                 st.error("❌ Invalid API Key")
-#                 st.session_state.gemini_key_valid = False
-        
-#         st.divider()
-        
-#         # Initialize RAG Pipeline button
-#         if st.session_state.gemini_key_valid:
-#             if st.button("🔄 Initialize/Refresh Vector DB"):
-#                 with st.spinner("Initializing RAG pipeline..."):
-#                     try:
-#                         st.session_state.rag_pipeline = RAGPipeline()
-#                         st.session_state.rag_pipeline.initialize_vector_store()
-#                         st.success("✅ Vector DB initialized")
-#                     except Exception as e:
-#                         st.error(f"❌ Error initializing vector DB: {str(e)}")
-        
-#         # Show vector DB status
-#         if st.session_state.rag_pipeline:
-#             st.info(f"📊 Vector DB: {st.session_state.rag_pipeline.get_document_count()} documents loaded")
-
-# def profile_analysis_section():
-#     """Profile Analysis Section"""
-#     st.header("👤 Profile Analysis")
-    
-#     col1, col2 = st.columns(2)
-    
-#     with col1:
-#         st.subheader("Upload Resume")
-#         uploaded_file = st.file_uploader(
-#             "Upload your resume (PDF)",
-#             type=['pdf'],
-#             key="resume_upload"
-#         )
-        
-#         if uploaded_file and st.button("📄 Analyze Resume"):
-#             with st.spinner("Analyzing resume..."):
-#                 try:
-#                     resume_text = parse_resume_pdf(uploaded_file)
-#                     agent = ProfileAnalyzerAgent()
-#                     profile = agent.analyze_profile(resume_text)
-#                     st.session_state.user_profile = profile
-#                     st.success("✅ Resume analyzed successfully")
-#                 except Exception as e:
-#                     st.error(f"❌ Error analyzing resume: {str(e)}")
-    
-#     with col2:
-#         st.subheader("Manual Input")
-#         manual_input = st.text_area(
-#             "Describe your skills and experience",
-#             height=150,
-#             placeholder="e.g., Python developer with 3 years experience in Django, React, AWS..."
-#         )
-        
-#         if manual_input and st.button("✍️ Analyze Manual Input"):
-#             with st.spinner("Analyzing profile..."):
-#                 try:
-#                     agent = ProfileAnalyzerAgent()
-#                     profile = agent.analyze_profile(manual_input)
-#                     st.session_state.user_profile = profile
-#                     st.success("✅ Profile analyzed successfully")
-#                 except Exception as e:
-#                     st.error(f"❌ Error analyzing profile: {str(e)}")
-    
-#     # Display current profile
-#     if st.session_state.user_profile:
-#         st.subheader("📊 Your Profile Summary")
-#         profile = st.session_state.user_profile
-        
-#         col1, col2 = st.columns(2)
-#         with col1:
-#             st.write("**Technical Skills:**")
-#             for skill in profile.get('technical_skills', []):
-#                 st.write(f"• {skill}")
-        
-#         with col2:
-#             st.write("**Soft Skills:**")
-#             for skill in profile.get('soft_skills', []):
-#                 st.write(f"• {skill}")
-
-# def role_selection_section():
-#     """Role Selection and Requirement Retrieval"""
-#     if not st.session_state.rag_pipeline:
-#         st.warning("⚠️ Please initialize the Vector DB first from the sidebar")
-#         return
-    
-#     st.header("🎯 Target Role Selection")
-    
-#     # Get available companies/roles
-#     available_docs = st.session_state.rag_pipeline.get_available_documents()
-    
-#     if not available_docs:
-#         st.warning("⚠️ No company data found. Please add job descriptions to the company_data/ folder")
-#         return
-    
-#     selected_doc = st.selectbox(
-#         "Select a company/role",
-#         options=available_docs,
-#         key="role_selection"
-#     )
-    
-#     if selected_doc and st.button("🔍 Analyze Role Requirements"):
-#         with st.spinner("Analyzing role requirements..."):
-#             try:
-#                 agent = RoleRequirementRetrieverAgent(st.session_state.rag_pipeline)
-#                 role_requirements = agent.get_role_requirements(selected_doc)
-#                 st.session_state.selected_role = {
-#                     'document': selected_doc,
-#                     'requirements': role_requirements
-#                 }
-#                 st.success("✅ Role requirements analyzed")
-#             except Exception as e:
-#                 st.error(f"❌ Error analyzing role: {str(e)}")
-    
-#     # Display role requirements
-#     if st.session_state.selected_role:
-#         st.subheader("📋 Role Requirements")
-#         reqs = st.session_state.selected_role['requirements']
-        
-#         col1, col2 = st.columns(2)
-#         with col1:
-#             st.write("**Must-Have Skills:**")
-#             for skill in reqs.get('must_have_skills', []):
-#                 st.write(f"• {skill}")
-        
-#         with col2:
-#             st.write("**Nice-to-Have Skills:**")
-#             for skill in reqs.get('nice_to_have_skills', []):
-#                 st.write(f"• {skill}")
-
-# def gap_analysis_section():
-#     """Gap Analysis Section"""
-#     if not st.session_state.user_profile or not st.session_state.selected_role:
-#         st.warning("⚠️ Please complete profile analysis and role selection first")
-#         return
-    
-#     st.header("📊 Gap Analysis")
-    
-#     if st.button("🔍 Analyze Skill Gaps"):
-#         with st.spinner("Analyzing skill gaps..."):
-#             try:
-#                 agent = GapAnalysisAgent()
-#                 gap_analysis = agent.analyze_gaps(
-#                     st.session_state.user_profile,
-#                     st.session_state.selected_role['requirements']
-#                 )
-#                 st.session_state.gap_analysis = gap_analysis
-#                 st.success("✅ Gap analysis completed")
-#             except Exception as e:
-#                 st.error(f"❌ Error in gap analysis: {str(e)}")
-    
-#     # Display gap analysis
-#     if st.session_state.gap_analysis:
-#         gaps = st.session_state.gap_analysis
-        
-#         # Critical gaps
-#         if gaps.get('critical_gaps'):
-#             st.subheader("🔴 Critical Gaps (Must Address)")
-#             for gap in gaps['critical_gaps']:
-#                 st.error(f"• {gap}")
-        
-#         # Intermediate gaps
-#         if gaps.get('intermediate_gaps'):
-#             st.subheader("🟡 Intermediate Gaps")
-#             for gap in gaps['intermediate_gaps']:
-#                 st.warning(f"• {gap}")
-        
-#         # Bonus gaps
-#         if gaps.get('bonus_gaps'):
-#             st.subheader("🟢 Bonus Skills")
-#             for gap in gaps['bonus_gaps']:
-#                 st.info(f"• {gap}")
-        
-#         # Strengths
-#         if gaps.get('strengths'):
-#             st.subheader("✅ Your Strengths")
-#             for strength in gaps['strengths']:
-#                 st.success(f"• {strength}")
-
-# def roadmap_section():
-#     """Learning Roadmap Section"""
-#     if not st.session_state.gap_analysis:
-#         st.warning("⚠️ Please complete gap analysis first")
-#         return
-    
-#     st.header("🗺️ Learning Roadmap")
-    
-#     if st.button("📝 Generate Learning Roadmap"):
-#         with st.spinner("Generating personalized roadmap..."):
-#             try:
-#                 agent = RoadmapBuilderAgent()
-#                 roadmap = agent.build_roadmap(
-#                     st.session_state.gap_analysis,
-#                     st.session_state.user_profile,
-#                     st.session_state.selected_role
-#                 )
-#                 st.session_state.roadmap = roadmap
-#                 st.success("✅ Roadmap generated successfully")
-#             except Exception as e:
-#                 st.error(f"❌ Error generating roadmap: {str(e)}")
-    
-#     # Display roadmap
-#     if st.session_state.roadmap:
-#         roadmap = st.session_state.roadmap
-        
-#         # Overall timeline
-#         st.subheader("⏱️ Timeline Overview")
-#         st.write(f"**Estimated Duration:** {roadmap.get('total_duration', 'N/A')}")
-        
-#         # Milestones
-#         if roadmap.get('milestones'):
-#             st.subheader("🎯 Learning Milestones")
-#             for i, milestone in enumerate(roadmap['milestones'], 1):
-#                 with st.expander(f"Milestone {i}: {milestone.get('title', 'N/A')}"):
-#                     st.write(f"**Duration:** {milestone.get('duration', 'N/A')}")
-#                     st.write(f"**Description:** {milestone.get('description', 'N/A')}")
-                    
-#                     if milestone.get('tasks'):
-#                         st.write("**Tasks:**")
-#                         for task in milestone['tasks']:
-#                             st.write(f"• {task}")
-                    
-#                     if milestone.get('resources'):
-#                         st.write("**Resources:**")
-#                         for resource in milestone['resources']:
-#                             st.write(f"• {resource}")
-        
-#         # Progress tracking
-#         st.subheader("📈 Progress Tracking")
-#         st.info("💡 Pro tip: Use this roadmap to track your daily/weekly progress. Check off completed tasks and update your profile as you learn new skills!")
-
-# def main():
-#     """Main application"""
-#     st.title("🚀 Career Accelerator AI")
-#     st.markdown("*Reach your career goals faster with AI-powered skill gap analysis and personalized learning roadmaps*")
-    
-#     # Initialize session state
-#     initialize_session_state()
-    
-#     # Setup sidebar
-#     setup_sidebar()
-    
-#     # Main content
-#     if not st.session_state.gemini_key_valid:
-#         st.warning("⚠️ Please enter your Gemini API key in the sidebar to get started")
-#         st.info("📝 Get your free API key from: https://ai.google.dev/")
-#         return
-    
-#     # Application sections
-#     profile_analysis_section()
-#     st.divider()
-    
-#     role_selection_section()
-#     st.divider()
-    
-#     gap_analysis_section()
-#     st.divider()
-    
-#     roadmap_section()
-
-# if __name__ == "__main__":
-#     main()
 import streamlit as st
 st.set_page_config(
     page_title="Career Accelerator AI",
     page_icon="🤖",
     layout="wide"
 )
+import pandas as pd
+import plotly.express as px
 import os
 from pathlib import Path
 import json
@@ -473,7 +157,6 @@ st.markdown("""
     }
 </style>
 """, unsafe_allow_html=True)
-
 def initialize_session_state():
     """Initialize all session state variables"""
     if 'user_profile' not in st.session_state:
@@ -522,8 +205,8 @@ def setup_sidebar():
                         st.session_state.rag_pipeline.initialize_vector_store()
                         st.markdown(
                             """
-                            <div style="background-color: #d4edda; color: #155724; padding: 10px; border-radius: 5px; font-weight: bold;">
-                                ✅ AI Agents initialized
+                            <div class="success-box">
+                                ✅ AI Agents initialized successfully
                             </div>
                             """,
                             unsafe_allow_html=True
@@ -531,17 +214,12 @@ def setup_sidebar():
                     except Exception as e:
                         st.markdown(
                             f"""
-                            <div style="background-color: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; font-weight: bold;">
+                            <div class="error-box">
                                 ❌ Error initializing AI agents: {str(e)}
                             </div>
                             """,
                             unsafe_allow_html=True
                         )
-
-        # Show vector DB status
-        if st.session_state.rag_pipeline:
-            st.markdown(f"<div class='info-box'>📊 Knowledge Base: {st.session_state.rag_pipeline.get_document_count()} documents loaded</div>", unsafe_allow_html=True)
-
 def profile_analysis_section():
     """Profile Analysis Section"""
     st.markdown("<div class='agent-card'><div class='agent-title'><h2>🤖 Resume Analyzer Agent</h2></div></div>", unsafe_allow_html=True)
@@ -717,6 +395,10 @@ def roadmap_section():
                     st.session_state.user_profile,
                     st.session_state.selected_role
                 )
+                # Initialize status for each milestone if not already present
+                for milestone in roadmap.get('milestones', []):
+                    if 'status' not in milestone:
+                        milestone['status'] = 'Not Started'
                 st.session_state.roadmap = roadmap
                 st.markdown("<div class='success-box'>✅ AI-generated roadmap ready</div>", unsafe_allow_html=True)
             except Exception as e:
@@ -730,18 +412,76 @@ def roadmap_section():
         st.subheader("⏱️ AI-Suggested Timeline")
         st.markdown(f"**⏳ Estimated Duration:** {roadmap.get('total_duration', 'N/A')}")
         
+        # Calculate progress statistics
+        total_milestones = len(roadmap.get('milestones', []))
+        completed_milestones = sum(1 for m in roadmap.get('milestones', []) if m.get('status') == 'Completed')
+        in_progress_milestones = sum(1 for m in roadmap.get('milestones', []) if m.get('status') == 'In Progress')
+        progress_percentage = int((completed_milestones / total_milestones * 100)) if total_milestones > 0 else 0
+        
+        # Visual progress bar
+        st.subheader("📈 Overall Progress")
+        st.progress(progress_percentage)
+
+        # Custom CSS to change metric text color
+        st.markdown("""
+        <style>
+        /* Total Milestones */
+        div[data-testid="stMetric"]:nth-child(1) {
+            color: #1f77b4;
+        }
+        /* Completed */
+        div[data-testid="stMetric"]:nth-child(2) {
+            color: #2ca02c;
+        }
+        /* In Progress */
+        div[data-testid="stMetric"]:nth-child(3) {
+            color: #ff7f0e;
+        }
+        </style>
+        """, unsafe_allow_html=True)
+        col1, col2, col3 = st.columns(3)
+        col1.metric("Total Milestones", total_milestones)
+        col2.metric("Completed", completed_milestones, f"{progress_percentage}%")
+        col3.metric("In Progress", in_progress_milestones)
+        
         # Milestones
         if roadmap.get('milestones'):
             st.subheader("🎯 Learning Milestones")
             for i, milestone in enumerate(roadmap['milestones'], 1):
-                with st.expander(f"📌 Milestone {i}: {milestone.get('title', 'N/A')}"):
+                with st.expander(f"📌 Milestone {i}: {milestone.get('title', 'N/A')} - {milestone.get('status', 'Not Started')}"):
+                    # Status selector
+                    status = st.selectbox(
+                        f"Update status for Milestone {i}",
+                        options=['Not Started', 'In Progress', 'Completed'],
+                        index=['Not Started', 'In Progress', 'Completed'].index(milestone.get('status', 'Not Started')),
+                        key=f"milestone_status_{i}"
+                    )
+                    # Update status in the roadmap
+                    milestone['status'] = status
+                    
+                    # Visual indicator based on status
+                    if status == 'Completed':
+                        st.markdown(f"<div style='background-color: #d4edda; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>✅ {status}</div>", unsafe_allow_html=True)
+                    elif status == 'In Progress':
+                        st.markdown(f"<div style='background-color: #fff3cd; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>🔄 {status}</div>", unsafe_allow_html=True)
+                    else:
+                        st.markdown(f"<div style='background-color: #f8d7da; padding: 10px; border-radius: 5px; margin-bottom: 10px;'>⏳ {status}</div>", unsafe_allow_html=True)
+                    
                     st.markdown(f"**⏱️ Duration:** {milestone.get('duration', 'N/A')}")
                     st.markdown(f"**📝 Description:** {milestone.get('description', 'N/A')}")
                     
                     if milestone.get('tasks'):
                         st.markdown("**✅ Tasks:**")
-                        for task in milestone['tasks']:
-                            st.markdown(f"• {task}")
+                        for j, task in enumerate(milestone['tasks'], 1):
+                            task_status = st.checkbox(
+                                task,
+                                value=(milestone.get('task_status', {}).get(str(j), False)),
+                                key=f"task_{i}_{j}"
+                            )
+                            # Store task completion status
+                            if 'task_status' not in milestone:
+                                milestone['task_status'] = {}
+                            milestone['task_status'][str(j)] = task_status
                     
                     if milestone.get('resources'):
                         st.markdown("**📚 Resources:**")
@@ -749,8 +489,44 @@ def roadmap_section():
                             st.markdown(f"• {resource}")
         
         # Progress tracking
-        st.subheader("📈 AI-Powered Progress Tracking")
-        st.markdown("<div class='info-box'>💡 Pro tip: Use this AI-generated roadmap to track your progress. The system will adapt as you complete milestones!</div>", unsafe_allow_html=True)
+        st.subheader("📊 Progress Visualization")
+        if roadmap.get('milestones'):
+            # Create a dataframe for visualization
+            import pandas as pd
+            import plotly.express as px
+            
+            progress_data = []
+            for i, milestone in enumerate(roadmap['milestones'], 1):
+                progress_data.append({
+                    'Milestone': f"Milestone {i}",
+                    'Title': milestone.get('title', ''),
+                    'Status': milestone.get('status', 'Not Started'),
+                    'Duration': milestone.get('duration', ''),
+                    'Completion': 100 if milestone.get('status') == 'Completed' else 
+                                  (50 if milestone.get('status') == 'In Progress' else 0)
+                })
+            
+            df = pd.DataFrame(progress_data)
+            
+            # Status distribution pie chart
+            st.markdown("**📊 Status Distribution**")
+            fig1 = px.pie(df, names='Status', title='Milestone Status Distribution')
+            st.plotly_chart(fig1, use_container_width=True)
+            
+            # Completion progress bar chart
+            st.markdown("**📈 Completion Progress**")
+            fig2 = px.bar(df, x='Milestone', y='Completion', 
+                          color='Status',
+                          title='Milestone Completion Progress',
+                          text='Completion',
+                          color_discrete_map={
+                              'Completed': '#28a745',
+                              'In Progress': '#ffc107',
+                              'Not Started': '#dc3545'
+                          })
+            fig2.update_traces(texttemplate='%{y}%', textposition='outside')
+            fig2.update_layout(uniformtext_minsize=8, uniformtext_mode='hide')
+            st.plotly_chart(fig2, use_container_width=True)
 
 def main():
     """Main application"""
