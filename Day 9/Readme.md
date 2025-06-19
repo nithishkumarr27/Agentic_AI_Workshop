@@ -6,12 +6,12 @@ A **Streamlit-based agentic AI application** that guides users through a persona
 
 ## 🚀 Features
 
-* ✅ Resume parsing and skill extraction
-* 🎯 Job role requirement analysis with RAG
-* 🧠 Skill gap analysis using LLM agents
-* 📆 12-week personalized learning roadmap with milestones
-* 📊 Skill visualization with Plotly
-* 🌈 Responsive and colorful UI with theme support
+- ✅ Resume parsing and skill extraction
+- 🎯 Job role requirement analysis with RAG
+- 🧠 Skill gap analysis using LLM agents
+- 📆 12-week personalized learning roadmap with milestones
+- 📊 Skill visualization with Plotly
+- 🌈 Responsive and colorful UI with theme support
 
 ---
 
@@ -65,11 +65,12 @@ Each tool is invoked as part of an **LLM-powered agent** with prompt templates a
 2. **Resume Upload & Input**: `resume_input_section()`
 3. **Main Agent Logic**:
 
-   * Class `CareerRoadmapPlanner`
+   - Class `CareerRoadmapPlanner`
 
-     * Loads Gemini models + FAISS
-     * Initializes LangChain tools
-     * Composes agent with `AgentExecutor`
+     - Loads Gemini models + FAISS
+     - Initializes LangChain tools
+     - Composes agent with `AgentExecutor`
+
 4. **Result Display**: `display_results()` shows skill bars, tables, milestones, download option
 
 ---
@@ -95,16 +96,30 @@ streamlit run main.py
 
 ## 📌 Future Enhancements
 
-* 🔗 LinkedIn profile integration
-* ☁️ Cloud deployment with persistent vectorstore
-* 📥 Export roadmap as PDF or email
-* 👥 Multi-user session management
+- 🔗 LinkedIn profile integration
+- ☁️ Cloud deployment with persistent vectorstore
+- 📥 Export roadmap as PDF or email
+- 👥 Multi-user session management
 
 ---
 
 ## 📸 Screenshots
 
 > Include here: Resume Upload, Skill Gap Chart, Roadmap Week View
+
+## 📸 Screenshots
+
+### 📄 Resume Upload & Role Selection
+
+![Resume Upload](Day 9/images/Screenshot 2025-06-19 152805.png)
+
+### 📊 Skill Gap Analysis
+
+![Skill Gap Chart](Day 9/images/Screenshot 2025-06-19 152918.png)
+
+### 🗺️ Learning Roadmap Preview
+
+![Roadmap UI](Day 9/images/Screenshot 2025-06-19 152930.png)
 
 ---
 
