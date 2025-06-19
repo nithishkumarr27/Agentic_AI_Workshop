@@ -1,0 +1,10 @@
+streamlit
+langchain
+langchain-google-genai
+pyPDF2
+faiss-cpu
+python-dotenv
+plotly
+pydantic
+langchain-community
+sentence-transformers
