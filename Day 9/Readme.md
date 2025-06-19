@@ -111,15 +111,15 @@ streamlit run main.py
 
 ### 📄 Resume Upload & Role Selection
 
-![Resume Upload](Day 9/images/Screenshot 2025-06-19 152805.png)
+![Resume Upload]("Day 9/images/Screenshot 2025-06-19 152805.png")
 
 ### 📊 Skill Gap Analysis
 
-![Skill Gap Chart](Day 9/images/Screenshot 2025-06-19 152918.png)
+![Skill Gap Chart]("Day 9/images/Screenshot 2025-06-19 152918.png")
 
 ### 🗺️ Learning Roadmap Preview
 
-![Roadmap UI](Day 9/images/Screenshot 2025-06-19 152930.png)
+![Roadmap UI]("Day 9/images/Screenshot 2025-06-19 152930.png")
 
 ---
 
