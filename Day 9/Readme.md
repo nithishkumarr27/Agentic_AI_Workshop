@@ -111,7 +111,7 @@ streamlit run main.py
 
 ### 📄 Resume Upload & Role Selection
 
-![Resume Upload](images/Screenshot%202025-06-19%20152805.png)
+![Resume Upload](images/image.png)
 
 ### 📊 Skill Gap Analysis
 
@@ -119,7 +119,7 @@ streamlit run main.py
 
 ### 🗺️ Learning Roadmap Preview
 
-## ![Roadmap UI](images/Screenshot%202025-06-19%20152930.png)
+## ![Roadmap UI](images/pic.png)
 
 ## 📃 License
 

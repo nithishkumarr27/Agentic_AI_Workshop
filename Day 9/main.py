@@ -2,10 +2,12 @@ import os
 import json
 import tempfile
 import base64
+import datetime
 from typing import Dict, List, Tuple, Optional
 import pandas as pd
 import streamlit as st
 import plotly.express as px
+import plotly.graph_objects as go
 from langchain_google_genai import ChatGoogleGenerativeAI, GoogleGenerativeAIEmbeddings
 from langchain_core.prompts import ChatPromptTemplate
 from langchain_core.output_parsers import StrOutputParser, JsonOutputParser
@@ -21,6 +23,8 @@ from langchain_core.tools import Tool
 from langchain.agents import AgentExecutor, create_tool_calling_agent
 from langchain_core.prompts import MessagesPlaceholder
 
+# Configuration
+JD_DIRECTORY = "job_descriptions"  # Directory containing sample job description PDFs
 DEFAULT_JOB_ROLES = [
     "Data Scientist",
     "Machine Learning Engineer",
@@ -31,11 +35,6 @@ DEFAULT_JOB_ROLES = [
     "Cloud Architect",
     "DevOps Engineer"
 ]
-
-SKILL_CATEGORIES = {
-    "Technical": ["Programming", "ML Frameworks", "Cloud", "Databases", "DevOps"],
-    "Soft": ["Communication", "Leadership", "Problem Solving", "Teamwork"]
-}
 
 def load_credentials() -> Dict[str, str]:
     try:
@@ -82,6 +81,52 @@ def visualize_skill_gaps(skills_df: pd.DataFrame) -> None:
     )
     st.plotly_chart(fig, use_container_width=True)
 
+def visualize_roadmap_progress(roadmap: Dict) -> None:
+    if not roadmap or 'weeks' not in roadmap:
+        st.warning("No roadmap data available for visualization")
+        return
+    
+    # Create progress data
+    tasks = []
+    today = datetime.date.today()
+    
+    for week in roadmap['weeks']:
+        week_num = week['week']
+        status = st.session_state.progress.get(week_num, "Not Started")
+        
+        # Calculate dates for the week
+        start_date = today + datetime.timedelta(days=(week_num-1)*7)
+        end_date = start_date + datetime.timedelta(days=6)
+        
+        tasks.append({
+            'Task': f"Week {week_num}",
+            'Start': start_date,
+            'Finish': end_date,
+            'Status': status
+        })
+    
+    # Create Gantt chart
+    fig = px.timeline(
+        pd.DataFrame(tasks),
+        x_start="Start",
+        x_end="Finish",
+        y="Task",
+        color="Status",
+        color_discrete_map={
+            "Completed": "#2ecc71",
+            "In Progress": "#f39c12",
+            "Not Started": "#e74c3c"
+        },
+        title="Learning Roadmap Progress"
+    )
+    fig.update_yaxes(autorange="reversed")
+    fig.update_layout(
+        xaxis_title="Timeline",
+        yaxis_title="Week",
+        height=500
+    )
+    st.plotly_chart(fig, use_container_width=True)
+
 def parse_pdf(file_path: str) -> str:
     try:
         loader = PyPDFLoader(file_path)
@@ -119,6 +164,27 @@ def safe_json_parse(json_str: str) -> Dict:
             st.error(f"Failed to parse JSON: {e}\nOriginal content:\n{json_str}")
             return {}
 
+def load_jd_documents(directory: str) -> List[Document]:
+    """Load all PDF job descriptions from a directory"""
+    documents = []
+    if os.path.exists(directory):
+        for filename in os.listdir(directory):
+            if filename.endswith(".pdf"):
+                filepath = os.path.join(directory, filename)
+                try:
+                    loader = PyPDFLoader(filepath)
+                    pages = loader.load()
+                    role = filename.replace(".pdf", "").replace("_", " ")
+                    for page in pages:
+                        page.metadata["role"] = role
+                        page.metadata["source"] = "sample"
+                    documents.extend(pages)
+                except Exception as e:
+                    st.error(f"Error loading {filename}: {e}")
+    else:
+        st.warning(f"JD directory not found: {directory}")
+    return documents
+
 class CareerRoadmapPlanner:
     def __init__(self):
         credentials = load_credentials()
@@ -136,13 +202,20 @@ class CareerRoadmapPlanner:
         self.agent_executor = self._create_agent()
 
     def _init_vectorstore(self) -> FAISS:
-        sample_jds = [
-            Document(page_content="Data Scientist role requires Python, SQL, Machine Learning, Statistics. Senior level needs 5+ years experience.", 
-                    metadata={"role": "Data Scientist"}),
-            Document(page_content="ML Engineer needs Python, TensorFlow, PyTorch, Cloud (AWS/GCP), MLOps. Mid-level requires 3+ years.", 
-                    metadata={"role": "Machine Learning Engineer"})
-        ]
-        return FAISS.from_documents(sample_jds, self.embeddings)
+        """Initialize vector store with job descriptions from directory"""
+        documents = load_jd_documents(JD_DIRECTORY)
+        if not documents:
+            st.warning("No job descriptions found. Using empty vector store.")
+        return FAISS.from_documents(documents, self.embeddings)
+
+    def add_jd_to_vectorstore(self, jd_text: str, role: str) -> None:
+        """Add new job description to vector store"""
+        doc = Document(
+            page_content=jd_text,
+            metadata={"role": role, "source": "user"}
+        )
+        self.vectorstore.add_documents([doc])
+        st.success(f"Added new JD for {role} to knowledge base!")
 
     def _init_tools(self) -> List[Tool]:
         @tool
@@ -166,22 +239,30 @@ class CareerRoadmapPlanner:
         @tool
         def get_role_requirements(role: str) -> Dict:
             """Retrieve requirements for a specific job role using RAG."""
+            # Retrieve most relevant documents
+            docs = self.vectorstore.similarity_search(role, k=3)
+            context = "\n\n".join([d.page_content for d in docs])
+            
             prompt = ChatPromptTemplate.from_template(
-                """What are the key requirements for a {role} position?
+                """Based on the following job descriptions, extract key requirements for a {role} position:
                 
-                Context: {context}
+                Context:
+                {context}
                 
                 Return JSON with:
                 {{
-                    "required_skills": [{{"name": str, "importance": str}}],
+                    "role": str,
+                    "required_skills": [{{"name": str, "importance": "Critical"|"Important"|"Nice-to-have"}}],
                     "experience_level": str,
-                    "certifications": [str]
+                    "certifications": [str],
+                    "education": str,
+                    "source": str
                 }}"""
             )
             
             chain = (
                 {
-                    "context": lambda x: self.vectorstore.similarity_search(x["role"], k=3),
+                    "context": RunnableLambda(lambda x: context),
                     "role": RunnablePassthrough()
                 }
                 | prompt
@@ -197,14 +278,18 @@ class CareerRoadmapPlanner:
             prompt = ChatPromptTemplate.from_template(
                 """Compare the user's skills with {role} requirements:
                 
-                User Skills: {user_skills}
-                Role Requirements: {role_requirements}
+                User Skills: 
+                {user_skills}
+                
+                Role Requirements: 
+                {role_requirements}
                 
                 Return JSON with:
                 {{
+                    "role": str,
                     "skill_gaps": [{{
                         "skill": str,
-                        "status": str,
+                        "status": "Covered"|"Moderate Gap"|"Critical Gap",
                         "current_level": int,
                         "target_level": int,
                         "description": str
@@ -215,8 +300,8 @@ class CareerRoadmapPlanner:
             
             chain = (
                 {
-                    "user_skills": RunnablePassthrough(),
-                    "role_requirements": RunnablePassthrough(),
+                    "user_skills": RunnableLambda(lambda x: json.dumps(x)),
+                    "role_requirements": RunnableLambda(lambda x: json.dumps(x)),
                     "role": RunnablePassthrough()
                 }
                 | prompt
@@ -236,12 +321,25 @@ class CareerRoadmapPlanner:
             prompt = ChatPromptTemplate.from_template(
                 """Create a 12-week learning roadmap for {name} transitioning to {target_role}.
                 
-                Current Skills: {current_skills}
-                Skill Gaps: {skill_gaps}
+                Current Skills: 
+                {current_skills}
+                
+                Skill Gaps: 
+                {skill_gaps}
                 
                 Format as JSON with:
                 {{
-                    "weeks": [{{"week": int, "topics": [str], "resources": [str], "project": str}}],
+                    "name": str,
+                    "target_role": str,
+                    "start_date": "YYYY-MM-DD",
+                    "weeks": [{{
+                        "week": int,
+                        "focus_areas": [str],
+                        "topics": [str],
+                        "resources": [str],
+                        "project": str,
+                        "milestone": bool
+                    }}],
                     "milestones": [{{"week": int, "description": str}}]
                 }}"""
             )
@@ -250,8 +348,8 @@ class CareerRoadmapPlanner:
                 {
                     "name": RunnablePassthrough(),
                     "target_role": RunnablePassthrough(),
-                    "current_skills": RunnablePassthrough(),
-                    "skill_gaps": RunnablePassthrough()
+                    "current_skills": RunnableLambda(lambda x: json.dumps(x)),
+                    "skill_gaps": RunnableLambda(lambda x: json.dumps(x["skill_gaps"]))
                 }
                 | prompt
                 | self.llm
@@ -261,7 +359,7 @@ class CareerRoadmapPlanner:
                 "name": name,
                 "target_role": target_role,
                 "current_skills": current_skills,
-                "skill_gaps": gap_analysis["skill_gaps"]  # Extract skill gaps list from gap_analysis dict
+                "skill_gaps": gap_analysis
             })
             return safe_json_parse(result)
 
@@ -301,7 +399,7 @@ class CareerRoadmapPlanner:
             "name": name,
             "target_role": target_role,
             "current_skills": current_skills,
-            "gap_analysis": gap_analysis  # Pass the entire gap_analysis dict
+            "gap_analysis": gap_analysis
         })
 
 def setup_ui() -> None:
@@ -324,6 +422,17 @@ def setup_ui() -> None:
         .stTabs [data-baseweb="tab-list"] { gap: 10px; }
         .stTabs [data-baseweb="tab"] { padding: 8px 16px; border-radius: 4px; }
         .stTabs [aria-selected="true"] { background-color: #3498db; color: white; }
+        .status-badge {
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: bold;
+            display: inline-block;
+            margin-left: 10px;
+        }
+        .completed { background-color: #2ecc71; color: white; }
+        .in-progress { background-color: #f39c12; color: white; }
+        .not-started { background-color: #e74c3c; color: white; }
     </style>
     """, unsafe_allow_html=True)
 
@@ -333,8 +442,9 @@ def show_header() -> None:
     **Upload your resume** and target job role to get a **personalized 12-week learning plan** 
     with skill gap analysis and milestone tracking.
     """)
+    st.divider()
 
-def resume_input_section() -> Tuple[str, str, str]:
+def resume_input_section(planner: CareerRoadmapPlanner) -> Tuple[str, str, str]:
     with st.expander("📄 Upload Your Resume", expanded=True):
         col1, col2 = st.columns(2)
         
@@ -369,16 +479,120 @@ def resume_input_section() -> Tuple[str, str, str]:
             help="Select your desired career role"
         )
         
+        # JD Upload Section
+        st.subheader("🔍 Job Description Source")
+        jd_option = st.radio(
+            "Select JD source:",
+            ["Use sample JDs", "Upload custom JD"],
+            horizontal=True
+        )
+        
+        jd_text = ""
+        if jd_option == "Upload custom JD":
+            jd_file = st.file_uploader(
+                "Upload Job Description (PDF or TXT)",
+                type=["pdf", "txt"],
+                help="Upload the job description you're targeting"
+            )
+            
+            if jd_file is not None:
+                if jd_file.type == "application/pdf":
+                    with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+                        tmp_file.write(jd_file.getvalue())
+                        jd_text = parse_pdf(tmp_file.name)
+                else:
+                    jd_text = jd_file.getvalue().decode("utf-8")
+                
+                if jd_text:
+                    planner.add_jd_to_vectorstore(jd_text, target_role)
+        
         return name, resume_text, target_role
 
+def display_roadmap_with_progress(roadmap: Dict) -> None:
+    if not roadmap or 'weeks' not in roadmap:
+        st.warning("Roadmap data not available")
+        return
+    
+    # Initialize session state for progress tracking
+    if 'progress' not in st.session_state:
+        st.session_state.progress = {}
+        for week in roadmap['weeks']:
+            week_num = week['week']
+            st.session_state.progress[week_num] = "Not Started"
+    
+    st.subheader("🗺️ Personalized Learning Roadmap")
+    st.caption(f"Roadmap for {roadmap.get('name', 'User')} to become a {roadmap.get('target_role', 'target role')}")
+    
+    # Visualize progress
+    visualize_roadmap_progress(roadmap)
+    
+    # Weekly breakdown with status tracking
+    for week in roadmap['weeks']:
+        week_num = week['week']
+        status = st.session_state.progress.get(week_num, "Not Started")
+        
+        # Create custom header with status badge
+        col1, col2 = st.columns([1, 0.2])
+        with col1:
+            st.subheader(f"Week {week_num}: {', '.join(week.get('focus_areas', []))}")
+        with col2:
+            # Status indicator
+            status_text = ""
+            if status == "Completed":
+                status_text = "✅ Completed"
+            elif status == "In Progress":
+                status_text = "🔄 In Progress"
+            else:
+                status_text = "❌ Not Started"
+            st.markdown(f"**{status_text}**")
+        
+        with st.expander("View details", expanded=False):
+            col1, col2 = st.columns([1, 1])
+            
+            with col1:
+                st.markdown("**Topics to Learn**")
+                for topic in week.get('topics', []):
+                    st.markdown(f"- {topic}")
+                
+                st.markdown("**Resources**")
+                for resource in week.get('resources', []):
+                    st.markdown(f"- {resource}")
+            
+            with col2:
+                if week.get('project'):
+                    st.markdown("**Practical Project**")
+                    st.info(week['project'])
+                
+                if week.get('milestone'):
+                    st.markdown("**Milestone Achievement**")
+                    st.success(week['milestone'])
+            
+            # Status selector
+            new_status = st.selectbox(
+                f"Update status for Week {week_num}",
+                ["Not Started", "In Progress", "Completed"],
+                index=["Not Started", "In Progress", "Completed"].index(status),
+                key=f"status_{week_num}"
+            )
+            
+            if new_status != status:
+                st.session_state.progress[week_num] = new_status
+                st.success(f"Status updated for Week {week_num}!")
+
 def display_results(
-    name: str,\
+    name: str,
     target_role: str, 
     profile_analysis: Dict,
     role_requirements: Dict,
     gap_analysis: Dict,
     roadmap: Dict
 ) -> None:
+    # Store results in session state to persist across reloads
+    st.session_state.profile_analysis = profile_analysis
+    st.session_state.role_requirements = role_requirements
+    st.session_state.gap_analysis = gap_analysis
+    st.session_state.roadmap = roadmap
+    
     tab1, tab2, tab3 = st.tabs(["Profile Analysis", "Skill Gaps", "Learning Roadmap"])
     
     with tab1:
@@ -431,45 +645,13 @@ def display_results(
             st.warning("No skill gaps data found")
     
     with tab3:
-        st.subheader("🗺️ Personalized Learning Roadmap")
-        
-        if "experience_level" in role_requirements:
-            st.success(f"Here's your 12-week plan to transition to {role_requirements['experience_level']} {target_role}")
-        else:
-            st.success(f"Here's your 12-week plan to transition to {target_role}")
-        
-        if "weeks" in roadmap:
-            for week in roadmap["weeks"]:
-                with st.expander(f"Week {week['week']}: {', '.join(week['topics'])}", expanded=False):
-                    col1, col2 = st.columns([1, 3])
-                    
-                    with col1:
-                        st.markdown("**Topics**")
-                        for topic in week["topics"]:
-                            st.markdown(f"- {topic}")
-                    
-                    with col2:
-                        st.markdown("**Resources & Project**")
-                        st.markdown("**Resources:**")
-                        for resource in week["resources"]:
-                            st.markdown(f"- {resource}")
-                        
-                        st.markdown(f"**Practical Project:** {week['project']}")
-        else:
-            st.warning("No roadmap weeks data found")
-        
-        st.markdown("**Key Milestones**")
-        if "milestones" in roadmap:
-            for milestone in roadmap["milestones"]:
-                st.markdown(f"🏁 **Week {milestone['week']}:** {milestone['description']}")
-        else:
-            st.warning("No milestones found in roadmap")
+        display_roadmap_with_progress(roadmap)
         
         if roadmap:
             st.download_button(
                 label="Download Roadmap (JSON)",
                 data=json.dumps(roadmap, indent=2),
-                file_name=f"{name}_career_roadmap.json",
+                file_name=f"{name}_{target_role.replace(' ', '_')}_roadmap.json",
                 mime="application/json"
             )
 
@@ -477,19 +659,40 @@ def main():
     setup_ui()
     show_header()
     
+    # Initialize planner
     planner = CareerRoadmapPlanner()
-    name, resume_text, target_role = resume_input_section()
     
-    if st.button("Generate Career Roadmap") and resume_text:
+    # Check if we have existing results in session state
+    if 'profile_analysis' not in st.session_state:
+        st.session_state.profile_analysis = None
+    if 'role_requirements' not in st.session_state:
+        st.session_state.role_requirements = None
+    if 'gap_analysis' not in st.session_state:
+        st.session_state.gap_analysis = None
+    if 'roadmap' not in st.session_state:
+        st.session_state.roadmap = None
+    
+    # Input section
+    name, resume_text, target_role = resume_input_section(planner)
+    
+    # Generate button - only show if we don't have results
+    if st.button("Generate Career Roadmap", type="primary") and resume_text:
         with st.spinner("Analyzing your profile and creating roadmap..."):
             try:
+                # Step 1: Analyze resume
                 profile_analysis = planner.analyze_resume(resume_text)
+                
+                # Step 2: Get role requirements using RAG
                 role_requirements = planner.get_role_requirements(target_role)
+                
+                # Step 3: Perform gap analysis
                 gap_analysis = planner.analyze_gaps(
                     profile_analysis,
                     role_requirements,
                     target_role
                 )
+                
+                # Step 4: Build personalized roadmap
                 roadmap = planner.build_roadmap(
                     name,
                     target_role,
@@ -497,18 +700,33 @@ def main():
                     gap_analysis
                 )
                 
-                # Pass all required arguments including roadmap
+                # Display all results
                 display_results(
                     name,
                     target_role, 
                     profile_analysis,
                     role_requirements,
                     gap_analysis,
-                    roadmap  # Make sure to include roadmap here
+                    roadmap
                 )
                 
             except Exception as e:
                 st.error(f"An error occurred: {str(e)}")
+    
+    # Display existing results if available
+    elif (st.session_state.roadmap and 
+          st.session_state.profile_analysis and
+          st.session_state.role_requirements and
+          st.session_state.gap_analysis):
+        display_results(
+            name or "User",
+            target_role or st.session_state.roadmap.get("target_role", "Target Role"),
+            st.session_state.profile_analysis,
+            st.session_state.role_requirements,
+            st.session_state.gap_analysis,
+            st.session_state.roadmap
+        )
+    
     elif not resume_text:
         st.warning("Please upload your resume to proceed")
 
