@@ -356,31 +356,6 @@ DEFAULT_ROADMAP = {
 }
 
 # ============== AGENT EXECUTORS ============== #
-
-def create_agent_executor(tools, system_message):
-    """Creates an AgentExecutor with tools and system message."""
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_message),
-        ("human", "{input}"),
-        MessagesPlaceholder("agent_scratchpad"),
-    ])
-    
-    llm_with_tools = gemini.bind_tools(tools)
-    
-    agent = (
-        {
-            "input": lambda x: x["input"],
-            "agent_scratchpad": lambda x: format_to_openai_tool_messages(
-                x["intermediate_steps"]
-            ),
-        }
-        | prompt
-        | llm_with_tools
-        | OpenAIToolsAgentOutputParser()
-    )
-    
-    return AgentExecutor(agent=agent, tools=tools, verbose=True)
-
 # Create agent executors for each stage
 def create_direct_tool_executor(tool):
     """Creates an executor that directly uses a tool without agent reasoning"""
@@ -404,6 +379,31 @@ def create_direct_tool_executor(tool):
 
 # Modified detection agent setup
 detection_executor = create_direct_tool_executor(detect_misconceptions_tool)
+def create_agent_executor(tools, system_message):
+    """Creates an AgentExecutor with tools and system message."""
+    prompt = ChatPromptTemplate.from_messages([
+        ("system", system_message),
+        ("human", "{input}"),
+        MessagesPlaceholder("agent_scratchpad"),
+    ])
+    
+    llm_with_tools = gemini.bind_tools(tools)
+    
+    agent = (
+        {
+            "input": lambda x: x["input"],
+            "agent_scratchpad": lambda x: format_to_openai_tool_messages(
+                x["intermediate_steps"]
+            ),
+        }
+        | prompt
+        | llm_with_tools
+        | OpenAIToolsAgentOutputParser()
+    )
+    
+    return AgentExecutor(agent=agent, tools=tools, verbose=True)
+    
+
 detection_agent = create_agent_executor(
     tools=[detect_misconceptions_tool],
    system_message="""You are a misconception detection agent. 
@@ -490,7 +490,7 @@ def detect_endpoint():
     }
     
     try:
-        # Call the tool directly with properly structured input
+        
         raw_result = detect_misconceptions_tool.run(tool_input)
         print(f"Raw detection output: {raw_result}")
         if isinstance(raw_result, str):
@@ -534,7 +534,7 @@ def classify_endpoint():
     misconceptions = []
     for candidate in candidates:
         try:
-            # Ensure candidate is properly structured for the tool
+           
             tool_input = {
                 "candidate": {
                     "tag": candidate.get("tag", "Unknown"),
@@ -612,7 +612,7 @@ def correct_endpoint():
                 }
             }
             
-            # Call the intervention tool directly
+           
             raw_result = generate_intervention_tool.run(tool_input)
             
             # Parse the result
@@ -661,7 +661,7 @@ def adjust_roadmap_endpoint():
         return jsonify({"error": "learnerId required"}), 400
     
     try:
-        # Call the tool directly with properly structured input
+       
         result = adjust_roadmap_tool.run({
             "learner_id": learner_id,
             "interventions": interventions
@@ -696,7 +696,7 @@ def track_recovery_endpoint():
         return jsonify({"error": "learnerId and roadmap required"}), 400
     
     try:
-        # Call the tool directly
+       
         result = track_recovery_tool.run({
             "learner_id": learner_id,
             "roadmap": roadmap
