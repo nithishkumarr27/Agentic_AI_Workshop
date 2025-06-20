@@ -30,20 +30,26 @@ A **Streamlit-based agentic AI application** that guides users through a persona
 
 ## 🧭 Workflow
 
-```mermaid
-flowchart TD
-    A["📝 User Uploads Resume & Selects Role"] --> B["📄 Resume PDF Parsed"]
-    B --> C["🔍 Resume Text Extracted"]
-    C --> D["🤖 LLM Agent - Analyze Resume"]
-    A --> E["🎯 Job Role Selected"]
-    E --> F["🔎 RAG Search from FAISS VectorStore"]
-    F --> G["📚 LLM Agent - Get Role Requirements"]
-    D --> H["🧐 LLM Agent - Analyze Skill Gaps"]
-    G --> H
-    H --> I["📅 LLM Agent - Build 12-week Roadmap"]
-    I --> J["📊 Display Roadmap, Skills, Milestones"]
-```
+# 📊 Learning Path Correction System Flow
 
+```mermaid
+graph TD
+    A[Start] --> B[Upload Code/Quiz Logs]
+    B --> C{Detect Misconceptions?}
+    C -->|Yes| D[Classify Errors]
+    C -->|No| B
+    D --> E[Generate Interventions]
+    E --> F{Take Pre-Test?}
+    F -->|Passed| G[Start Learning]
+    F -->|Failed| H[Review Materials]
+    G --> I[Complete Activities]
+    I --> J{Take Post-Test?}
+    J -->|Passed| K[Adjust Roadmap]
+    J -->|Failed| I
+    K --> L[Track Progress]
+    L --> M{Confidence Improved?}
+    M -->|Yes| N[Continue Next Concept]
+    M -->|No| H
 
 ---
 
