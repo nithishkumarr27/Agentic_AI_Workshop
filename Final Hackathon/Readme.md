@@ -64,43 +64,13 @@ Tracks long-term resolution and recurrence of misconceptions.
 
 ## 🔄 System Flow
 
-+----------------------------+
-|   Code/Quiz Submission     |
-+-------------+--------------+
-              |
-              v
-+-------------+--------------+
-| Misconception Detection    |
-|       Agent                |
-+-------------+--------------+
-              |
-              v
-+-------------+--------------+
-| Classification Agent       |
-| (Gemini + RAG)             |
-+-------------+--------------+
-              |
-              v
-+-------------+--------------+
-| Correction Intervention    |
-|        Agent               |
-+-------------+--------------+
-              |
-              v
-+-------------+--------------+
-| Roadmap Adjustment Agent   |
-+-------------+--------------+
-              |
-              v
-+-------------+--------------+
-| Confidence Tracker Agent   |
-+-------------+--------------+
-              |
-              v
-+-------------+--------------+
-|   Learner & Mentor         |
-|        Dashboard           |
-+----------------------------+
+flowchart TD
+    A[📝 Code / Quiz Submission] --> B[🧠 Misconception Detection Agent]
+    B --> C[🔍 Classification Agent <br/>(Gemini + RAG)]
+    C --> D[🛠️ Correction Agent]
+    D --> E[🗺️ Roadmap Adjustment Agent]
+    E --> F[📈 Confidence Tracker Agent]
+    F --> G[📊 Dashboard <br/>(Learner & Mentor)]
 
 
 ---
