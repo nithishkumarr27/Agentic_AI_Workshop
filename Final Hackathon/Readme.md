@@ -64,15 +64,20 @@ Tracks long-term resolution and recurrence of misconceptions.
 
 ## 🔄 System Flow
 
-```mermaid
-flowchart TD
-    A[Code/Quiz Submission] --> B[Misconception Detection Agent]
-    B --> C[Classification Agent (Gemini + RAG)]
-    C --> D[Correction Agent]
-    D --> E[Roadmap Adjustment Agent]
-    E --> F[Confidence Tracker Agent]
-    F --> G[Dashboard (Learner & Mentor)]
-```
+1. Code/Quiz Submission
+      ↓
+2. Misconception Detection Agent
+      ↓
+3. Classification Agent (Gemini + RAG)
+      ↓
+4. Correction Agent
+      ↓
+5. Roadmap Adjustment Agent
+      ↓
+6. Confidence Tracker Agent
+      ↓
+7. Dashboard (Learner & Mentor)
+
 
 ---
 
