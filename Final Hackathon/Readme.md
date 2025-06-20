@@ -64,7 +64,6 @@ Tracks long-term resolution and recurrence of misconceptions.
 
 ## 🔄 System Flow
 
-graph TD
     A[Frontend: React App] -->|HTTP Requests| B[Backend: Flask API]
     B --> C[Misconception Detector]
     B --> D[Classification Agent]
@@ -77,8 +76,6 @@ graph TD
     F --> H
     D --> I[FAISS Vector Store]
     B --> J[(MongoDB)]
-
----
 
 ## 📁 Project Structure
 
