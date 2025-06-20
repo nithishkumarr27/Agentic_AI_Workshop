@@ -64,15 +64,19 @@ Tracks long-term resolution and recurrence of misconceptions.
 
 ## 🔄 System Flow
 
-```mermaid
-flowchart TD
-    A[Code/Quiz Submission] --> B[Misconception Detection Agent]
-    B --> C[Classification Agent (Gemini + RAG)]
-    C --> D[Correction Agent]
-    D --> E[Roadmap Adjustment Agent]
-    E --> F[Confidence Tracker Agent]
-    F --> G[Dashboard (Learner & Mentor)]
-```
+graph TD
+    A[Frontend: React App] -->|HTTP Requests| B[Backend: Flask API]
+    B --> C[Misconception Detector]
+    B --> D[Classification Agent]
+    B --> E[Intervention Generator]
+    B --> F[Roadmap Adjuster]
+    B --> G[Progress Tracker]
+    C --> H[Gemini LLM]
+    D --> H
+    E --> H
+    F --> H
+    D --> I[FAISS Vector Store]
+    B --> J[(MongoDB)]
 
 ---
 
