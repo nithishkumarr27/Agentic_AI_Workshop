@@ -32,26 +32,19 @@ A **Streamlit-based agentic AI application** that guides users through a persona
 
 # 📊 Learning Path Correction System Flow
 
-```mermaid
 graph TD
-    A[Start] --> B[Upload Code/Quiz Logs]
-    B --> C{Detect Misconceptions?}
-    C -->|Yes| D[Classify Errors]
-    C -->|No| B
-    D --> E[Generate Interventions]
-    E --> F{Take Pre-Test?}
-    F -->|Passed| G[Start Learning]
-    F -->|Failed| H[Review Materials]
-    G --> I[Complete Activities]
-    I --> J{Take Post-Test?}
-    J -->|Passed| K[Adjust Roadmap]
-    J -->|Failed| I
-    K --> L[Track Progress]
-    L --> M{Confidence Improved?}
-    M -->|Yes| N[Continue Next Concept]
-    M -->|No| H
-
----
+    A[Frontend: React App] -->|HTTP Requests| B[Backend: Flask API]
+    B --> C[Misconception Detector]
+    B --> D[Classification Agent]
+    B --> E[Intervention Generator]
+    B --> F[Roadmap Adjuster]
+    B --> G[Progress Tracker]
+    C --> H[Gemini LLM]
+    D --> H
+    E --> H
+    F --> H
+    D --> I[FAISS Vector Store]
+    B --> J[(MongoDB)]
 
 ## 🧠 LangChain Agent Architecture
 
