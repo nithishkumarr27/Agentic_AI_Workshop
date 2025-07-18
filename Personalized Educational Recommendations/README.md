@@ -1,8 +1,4 @@
-Here's a well-structured **README.md** file for your project:
 
----
-
-```markdown
 # 🎓 Personalized Learning Assistant
 
 An intelligent assistant that generates **learning materials**, **quizzes**, and **project ideas** based on any topic and skill level using **Google Gemini AI** and **Serper API**. Built with Python, Streamlit, and CrewAI.
