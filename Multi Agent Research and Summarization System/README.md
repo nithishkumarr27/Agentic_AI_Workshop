@@ -160,7 +160,7 @@ streamlit run app.py
 
 ## 👤 Author
 
-Built by **Vigneshwaran A SNSIHUB**
+Built by **NITHISH KUMAR R**
 Powered by OpenAI, LangGraph, Google Generative AI, and Streamlit
 
 ---

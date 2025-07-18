@@ -10,14 +10,14 @@ A multi-agent data analysis system powered by [Google Gemini](https://ai.google)
 
 ## 🚀 Features
 
-* 🤖 **Multi-agent Architecture** using Autogen
-* 📊 **EDA Automation**: Summary stats, insights & chart suggestions
-* 🧹 **Data Cleaning**: Handle missing values, fix types, remove duplicates
-* 📄 **Report Generation**: AI-generated human-readable EDA reports
-* 🧐 **Critic Review**: Automated feedback on the report quality
-* ✅ **Code Validation**: Preprocessing code verification and improvement suggestions
-* 🧠 **Gemini 1.5 Flash API** for fast, intelligent content generation
-* 🌐 **Streamlit UI** for an intuitive and interactive experience
+- 🤖 **Multi-agent Architecture** using Autogen
+- 📊 **EDA Automation**: Summary stats, insights & chart suggestions
+- 🧹 **Data Cleaning**: Handle missing values, fix types, remove duplicates
+- 📄 **Report Generation**: AI-generated human-readable EDA reports
+- 🧐 **Critic Review**: Automated feedback on the report quality
+- ✅ **Code Validation**: Preprocessing code verification and improvement suggestions
+- 🧠 **Gemini 1.5 Flash API** for fast, intelligent content generation
+- 🌐 **Streamlit UI** for an intuitive and interactive experience
 
 ---
 
@@ -92,11 +92,11 @@ Visit `http://localhost:8501` in your browser to access the app.
 
 ## 📝 Example Output
 
-* 🧹 **Preprocessing Code**
-* 📊 **Insights & Visual Suggestions**
-* 📄 **EDA Report**
-* 🧐 **Critique of Report**
-* ✅ **Validation of Preprocessing Logic**
+- 🧹 **Preprocessing Code**
+- 📊 **Insights & Visual Suggestions**
+- 📄 **EDA Report**
+- 🧐 **Critique of Report**
+- ✅ **Validation of Preprocessing Logic**
 
 All of the above are shown in a user-friendly expandable Streamlit interface.
 
@@ -104,12 +104,12 @@ All of the above are shown in a user-friendly expandable Streamlit interface.
 
 ## 📌 Requirements
 
-* Python 3.8+
-* Google Gemini API Key
-* Streamlit
-* Pandas
-* dotenv
-* Autogen (Microsoft)
+- Python 3.8+
+- Google Gemini API Key
+- Streamlit
+- Pandas
+- dotenv
+- Autogen (Microsoft)
 
 Install them via:
 
@@ -121,10 +121,10 @@ pip install -r requirements.txt
 
 ## ✅ To-Do / Enhancements
 
-* [ ] Add real-time chart rendering (Matplotlib / Plotly)
-* [ ] Enable execution of preprocessing code
-* [ ] Store session reports
-* [ ] Export EDA reports to PDF
+- [ ] Add real-time chart rendering (Matplotlib / Plotly)
+- [ ] Enable execution of preprocessing code
+- [ ] Store session reports
+- [ ] Export EDA reports to PDF
 
 ---
 
@@ -136,8 +136,7 @@ This project is licensed under the [MIT License](LICENSE).
 
 ## 🙋‍♂️ Author
 
-Developed by **Vigneshwaran A @ SNSIHUB**
+Developed by **NITHISH KUMAR R**
 For educational and experimental use with LLM + RAG-based data analysis pipelines.
 
 ---
-
