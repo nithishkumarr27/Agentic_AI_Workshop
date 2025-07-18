@@ -1,6 +1,4 @@
-Sure! Here's a sample **README.md** file for your Streamlit project that uses custom CSS to display chat interactions between user and agent. This README assumes you're building a chat UI or an agent interaction interface.
 
----
 
 ````markdown
 # 💬 Streamlit Chat UI with Custom Styling
@@ -93,6 +91,3 @@ You can tweak the following:
 
 
 ---
-
-Let me know if you want a GitHub-ready version with images, demo links, or deployment instructions (like for Streamlit Cloud or Hugging Face Spaces).
-```
